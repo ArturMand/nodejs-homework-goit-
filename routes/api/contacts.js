@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const Joi = require("joi");
 const {
   listContacts,
   getContactById,
@@ -7,6 +8,17 @@ const {
   addContact,
   updateContact,
 } = require("../../models/contacts");
+
+const contactPostSchema = Joi.object({
+  name: Joi.string().min(3).max(20).required(),
+  email: Joi.string().email().min(3).max(20).required(),
+  phone: Joi.string().min(3).max(20).required(),
+});
+const contactPutSchema = Joi.object({
+  name: Joi.string().min(3).max(20).optional(),
+  email: Joi.string().email().min(3).max(20).optional(),
+  phone: Joi.string().min(3).max(20).optional(),
+});
 
 router.get("/", async (req, res, next) => {
   const contacts = await listContacts();
@@ -26,10 +38,17 @@ router.get("/:id", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   const { name, email, phone } = req.body;
-  const updatedPhonebook = await addContact(name, email, phone);
-  if (!Array.isArray(updatedPhonebook)) {
-    return res.status(400).json({ message: updatedPhonebook.message });
+  const { error } = contactPostSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({
+      status: "error",
+      code: 400,
+      message: "missing required name field",
+    });
+    return;
   }
+  const updatedPhonebook = await addContact(name, email, phone);
+
   res.status(201).json({ updatedPhonebook });
 });
 
@@ -53,13 +72,16 @@ router.put("/:id", async (req, res, next) => {
       message: `You no have contact with ID: ${id} in your phonebook `,
     });
   }
-  const { status, data } = updatedPhonebook;
-  if (!status) {
-    res.status(400).json({ message: updatedPhonebook.message });
+  if (!req.body) {
+    res.status(400).json({ message: "missing fields" });
+  }
+  const { error } = contactPutSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({ message: error.message });
     return;
   }
 
-  res.status(201).json({ data });
+  res.status(201).json({ updatedPhonebook });
 });
 
 module.exports = router;
