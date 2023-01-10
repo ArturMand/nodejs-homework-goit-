@@ -7,6 +7,7 @@ const {
   removeContact,
   addContact,
   updateContact,
+  updateStatusFavorite,
 } = require("../../models/contacts");
 
 const contactPostSchema = Joi.object({
@@ -26,19 +27,20 @@ router.get("/", async (req, res, next) => {
 });
 
 router.get("/:id", async (req, res, next) => {
-  const contactId = req.params.id;
-  const contactById = await getContactById(contactId);
-  if (!contactById) {
-    return res.status(400).json({
-      message: `Bad request, your phonebook no have contact with ID: ${contactId}`,
+  const { id } = req.params;
+  try {
+    const contactById = await getContactById(id);
+    res.json({ contactById });
+  } catch (error) {
+    res.status(400).json({
+      message: `Bad request, your phonebook no have contact with ID: ${id}`,
     });
   }
-  res.json({ contact: contactById });
 });
 
 router.post("/", async (req, res, next) => {
-  const { name, email, phone } = req.body;
-  const { error } = contactPostSchema.validate(req.body);
+  const { body } = req;
+  const { error } = contactPostSchema.validate(body);
   if (error) {
     res.status(400).json({
       status: "error",
@@ -47,31 +49,32 @@ router.post("/", async (req, res, next) => {
     });
     return;
   }
-  const updatedPhonebook = await addContact(name, email, phone);
-
-  res.status(201).json({ updatedPhonebook });
+  try {
+    const updatedPhonebook = await addContact(body);
+    res.status(201).json({ updatedPhonebook });
+  } catch (error) {
+    res.status(400).json({
+      message: `${error}`,
+    });
+  }
 });
 
 router.delete("/:id", async (req, res, next) => {
   const contactId = req.params.id;
-  const phonebookWithOutContactById = await removeContact(contactId);
-  if (!phonebookWithOutContactById) {
+  const deletedContact = await removeContact(contactId);
+  if (!deletedContact) {
     return res.status(400).json({
       message: `Bad request, your phonebook no have contact with ID: ${contactId}`,
     });
   }
 
-  res.json({ phonebookWithOutContactById });
+  res.status(200).json({ deletedContact });
 });
 
 router.put("/:id", async (req, res, next) => {
   const { id } = req.params;
   const updatedPhonebook = await updateContact(id, req.body);
-  if (typeof updatedPhonebook === "undefined") {
-    return res.status(400).json({
-      message: `You no have contact with ID: ${id} in your phonebook `,
-    });
-  }
+
   if (!req.body) {
     res.status(400).json({ message: "missing fields" });
   }
@@ -82,6 +85,17 @@ router.put("/:id", async (req, res, next) => {
   }
 
   res.status(201).json({ updatedPhonebook });
+});
+router.put("/:id/favorite", async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const updatedContact = await updateStatusFavorite(id);
+    res.status(201).json({ updatedContact });
+  } catch (error) {
+    res.status(400).json({
+      message: `Bad request, your phonebook no have contact with ID: ${id}`,
+    });
+  }
 });
 
 module.exports = router;
