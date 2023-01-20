@@ -1,6 +1,8 @@
 const User = require("../db/modelUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const fs = require("fs").promises;
+const Jimp = require("jimp");
 
 const getUsers = async (req, res) => {
   try {
@@ -64,6 +66,15 @@ const logOut = async (req, res) => {
   await User.findByIdAndUpdate(_id, { $set: { token: null } }, { new: true });
   res.status(204).end();
 };
+const updateAvatar = async (req, res, next) => {
+  const { _id } = req.user;
+  const { path } = req.file;
+  const result = await Jimp.read(path);
+  result.cover(250, 250).write(`public/avatars/${_id}`);
+  await fs.unlink(path);
+  await User.findByIdAndUpdate(_id, { avatarURL: `/avatars/${_id}` });
+  res.status(200).json({ avatarURL: `/avatars/${_id}` });
+};
 
 module.exports = {
   registerUser,
@@ -71,4 +82,5 @@ module.exports = {
   loginUser,
   getCurrentUser,
   logOut,
+  updateAvatar,
 };
