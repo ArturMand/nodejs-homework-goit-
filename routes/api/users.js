@@ -8,6 +8,8 @@ const {
   logOut,
   getCurrentUser,
   updateAvatar,
+  verifyToken,
+  verifyEmail,
 } = require("../../controllers/users");
 const authMiddlewere = require("../../helpers/authMiddlewere");
 const { validateUser } = require("../../helpers/validationsUserJoi");
@@ -20,5 +22,6 @@ router.post("/login", loginUser);
 router.post("/logout", authMiddlewere, logOut);
 router.post("/getcurrentuser", authMiddlewere, getCurrentUser);
 router.patch("/avatars", authMiddlewere, upload.single("avatar"), updateAvatar);
-
+router.get("/verify/:verificationToken", verifyToken);
+router.post("/verify", verifyEmail);
 module.exports = router;
